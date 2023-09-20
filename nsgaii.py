@@ -3,7 +3,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 
-NUM_VIENNET = 0
+NUM_VIENNET = 1
 NUM_PADRES = 100
 NUM_HIJOS = 100
 NUM_GENERACIONES = 500
@@ -15,7 +15,7 @@ viennet = [
         "funciones": [
             lambda x,y: x**2 + (y -1)**2,
             lambda x,y: x**2 + (y+1)**2 + 1,
-            lambda x,y: (x-1)**2+y*2+2
+            lambda x,y: ((x-1)**2)+(y**2)+2
         ],
         "lim_inf": -2,
         "lim_sup": 2
@@ -23,7 +23,7 @@ viennet = [
     {
         "tipo": "min",
         "funciones": [
-            lambda x,y: (((x-2)**2)/2) + (((y+1)**2)/13),
+            lambda x,y: (((x-2)**2)/2) + (((y+1)**2)/13) + 3,
             lambda x,y: (((x+y-3)**2)/36) + (((-x+y+2)**2)/8) - 17,
             lambda x,y: (((x+(2*y)-1)**2)/175) + ((((2*y)-x)**2)/17) -13
         ],
@@ -33,9 +33,9 @@ viennet = [
     {
         "tipo": "min",
         "funciones": [
-            lambda x,y: (.5*(x**2) + (y**2)) + math.sin((x**2) + (y**2)),
+            lambda x,y: (.5*((x**2) + (y**2))) + math.sin((x**2) + (y**2)),
             lambda x,y: (((3*x -2*y +4)**2)/8) + (((x-y+1)**2)/27) + 15,
-            lambda x,y: (1/((x**2)+(y**2)+1)) + 1.1*math.exp((-x**2) - (y**2))
+            lambda x,y: (1/((x**2)+(y**2)+1)) + 1.1*math.exp((-x**2)-(y**2))
         ],
         "lim_inf": -3,
         "lim_sup": 3
@@ -168,19 +168,40 @@ def sbx_crossover(padre1, padre2):
 
     return Individuo(hijo1x, hijo1y), Individuo(hijo2x, hijo2y)
 
-def polynomial_mutation(ind):
+def polynomial_mutation(valor):
     mu = random.uniform(0, 1)
     eta = 20
+    mut_pow = 1 / (eta + 1)
 
-    if(mu >=.5):
-        delta = (1 -(2*(1-mu)))**(1/(eta+1))
+    lim_sup = viennet[NUM_VIENNET]["lim_sup"]
+    lim_inf = viennet[NUM_VIENNET]["lim_inf"]
+
+    delta1 = (valor - lim_inf)/(lim_sup - lim_inf)
+    delta2 = (lim_sup - valor)/(lim_sup - lim_inf)
+
+    if mu <= .5:
+        xy = 1 - delta1
+        val = 2*mu + (1 - 2*mu)*np.power(xy, eta + 1)
+        deltaq = np.power(val, mut_pow) - 1
     else:
-        delta = (2*mu)**(1/(eta+1)) - 1
+        xy = 1 - delta2
+        val = 2*(1 -mu) + 2*(mu - .5)*np.power(xy, eta + 1)
+        deltaq = 1 - np.power(val, mut_pow)
 
-    ind_x = ind.x + (viennet[NUM_VIENNET]['lim_sup'] - viennet[NUM_VIENNET]['lim_inf'])*delta
-    ind_y = ind.y + (viennet[NUM_VIENNET]['lim_sup'] - viennet[NUM_VIENNET]['lim_inf'])*delta
+    """if(mu >=.5):
+        delta = (1 -(2*(1-mu)))**mut_power
+    else:
+        #deltaq = np.power((2*mu)**mut_power - 1
+        val = 2*mu + (1 - 2*mu) * np.power(1 - )
+        deltaq = np.power(val, mut_pow) - 1"""
 
-    return Individuo(ind_x, ind_y)
+    #ind_x = ind.x + (viennet[NUM_VIENNET]['lim_sup'] - viennet[NUM_VIENNET]['lim_inf'])*delta
+    #ind_y = ind.y + (viennet[NUM_VIENNET]['lim_sup'] - viennet[NUM_VIENNET]['lim_inf'])*delta
+
+    #ind_x = max(min(ind_x + deltaq*(lim_sup - lim_inf), lim_sup), lim_inf)
+    #ind_y = max(min(ind_y + deltaq*(lim_sup - lim_inf), lim_sup), lim_inf)
+
+    return max(min(valor + deltaq*(lim_sup - lim_inf), lim_sup), lim_inf)
 
 
 def seleccion_torneo(poblacion):
@@ -191,7 +212,7 @@ def seleccion_torneo(poblacion):
 
 def aplicar_mutacion(individuo):
     if random.random() < FACTOR_MUTACION:
-        return polynomial_mutation(individuo)
+        return Individuo(polynomial_mutation(individuo.x), polynomial_mutation(individuo.y))
     else:
         return individuo
     
