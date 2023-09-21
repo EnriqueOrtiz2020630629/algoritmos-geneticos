@@ -8,6 +8,7 @@ NUM_PADRES = 100
 NUM_HIJOS = 100
 NUM_GENERACIONES = 500
 FACTOR_MUTACION = .5 #1/n
+FACTOR_CROSSOVER = .5
 
 viennet = [
     {
@@ -152,21 +153,62 @@ def crowding_distance_assigment(frente):
         return frente
 
 def sbx_crossover(padre1, padre2):
-    mu = random.uniform(0, 1)
-    index_dist = 20
+    nvar_hijos = []
+    nvar = [(padre1.x, padre2.x), (padre1.y, padre2.y)]
 
-    if(mu <=.5):
-        beta = (1/(2*(1-mu))) **(1/(index_dist+1))
+    if np.random.uniform() <= FACTOR_CROSSOVER:
+        index_dist = 20
+        for i in range(0, len(nvar)):
+            if np.fabs(nvar[i][0] - nvar[i][1]) > 1.2e-7:
+                if nvar[i][0] < nvar[i][1]:
+                    y1 = nvar[i][0]
+                    y2 = nvar[i][1]
+                else:
+                    y1 = nvar[i][1]
+                    y2 = nvar[i][0]
+                yl = viennet[NUM_VIENNET]["lim_inf"]
+                yu = viennet[NUM_VIENNET]["lim_sup"]
+                rnd = 0
+                while rnd == 0:
+                    rnd = np.random.uniform()
+
+                betaq = np.power(2*rnd, 1.0/(index_dist+1)) if rnd <= .5 else np.power(2*rnd, 1.0/(index_dist+1))
+
+                #que hace esto?
+                rnd = 0
+                while rnd == 0:
+                    rnd = np.random.uniform()
+                betaq = 1 if rnd <= 0.5 else -1*betaq
+
+                rnd = 0
+                while rnd == 0:
+                    rnd = np.random.uniform()
+                betaq = 1 if rnd <= 0.5 else betaq
+
+                rnd = 0
+                while rnd == 0:
+                    rnd = np.random.uniform()
+                    betaq = 1 if rnd > FACTOR_CROSSOVER else betaq
+
+                c1 = 0.5*((y1 + y2) - betaq*(nvar[i][0] - nvar[i][1]))
+                c2 = 0.5*((y1 + y2) + betaq*(nvar[i][0] - nvar[i][1]))
+
+                c1 = yl if c1 < yl else c1
+                c2 = yl if c2 < yl else c2
+                c1 = yu if c1 > yu else c1
+                c2 = yu if c2 > yu else c2
+
+                if np.random.uniform() >= 0.5:
+                    nvar_hijos.append((c2, c1))
+                else:
+                    nvar_hijos.append((c1, c2))
+            else:
+                nvar_hijos.append((nvar[i][0], nvar[i][1]))
     else:
-        beta = (2*mu)**(1/(index_dist+1))
+        for i in range(0, len(nvar)):
+            nvar_hijos.append((nvar[i][0], nvar[i][1]))
 
-    hijo1x = .5*((1+beta)*padre1.x + (1-beta)*padre2.x)
-    hijo1y = .5*((1+beta)*padre1.y + (1-beta)*padre2.y)
-
-    hijo2x = .5*((1-beta)*padre2.x + (1+beta)*padre2.x)
-    hijo2y = .5*((1-beta)*padre2.y + (1+beta)*padre2.y)
-
-    return Individuo(hijo1x, hijo1y), Individuo(hijo2x, hijo2y)
+    return Individuo(nvar_hijos[0][0], nvar_hijos[0][1]), Individuo(nvar_hijos[1][0], nvar_hijos[1][1])
 
 def polynomial_mutation(valor):
     mu = random.uniform(0, 1)
